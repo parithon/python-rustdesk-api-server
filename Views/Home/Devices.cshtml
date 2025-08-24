@@ -1,0 +1,79 @@
+@model List<RustDeskDevice>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Devices";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Device Information</h2>
+            <p>All registered devices in the system</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Device ID</th>
+                            <th>Hostname</th>
+                            <th>CPU</th>
+                            <th>Memory</th>
+                            <th>OS</th>
+                            <th>Version</th>
+                            <th>IP Address</th>
+                            <th>Registration Time</th>
+                            <th>Update Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var device in Model)
+                        {
+                            <tr>
+                                <td>@device.RustDeskId</td>
+                                <td>@device.Hostname</td>
+                                <td>@device.Cpu</td>
+                                <td>@device.Memory</td>
+                                <td>@device.Os</td>
+                                <td>@device.Version</td>
+                                <td>@device.IpAddress</td>
+                                <td>@device.CreateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@device.UpdateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    @if (ViewBag.HasPreviousPage)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage - 1)">Previous</a>
+                        </li>
+                    }
+                    
+                    <li class="page-item active">
+                        <span class="page-link">Page @ViewBag.CurrentPage of @ViewBag.TotalPages</span>
+                    </li>
+                    
+                    @if (ViewBag.HasNextPage)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(ViewBag.CurrentPage + 1)">Next</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>

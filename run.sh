@@ -1,12 +1,12 @@
 #!/bin/bash
+# RustDesk API Server (.NET 9) Startup Script
 
-cd /rustdesk-api-server;
+echo "Starting RustDesk API Server (.NET 9)..."
+echo "Default admin credentials: admin/admin123"
+echo "Please change the default password after first login!"
+echo ""
+echo "Server will be available at: http://localhost:21114"
+echo "Press Ctrl+C to stop the server"
+echo ""
 
-if [ ! -e "./db/db.sqlite3" ]; then
-    cp "./db_bak/db.sqlite3" "./db/db.sqlite3"
-    echo "首次运行，初始化数据库"
-fi
-
-python manage.py makemigrations
-python manage.py migrate
-python manage.py runserver $HOST:21114;
+dotnet run --urls "http://0.0.0.0:21114"

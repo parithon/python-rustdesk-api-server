@@ -5,11 +5,13 @@ services:
     build:
       context: .
     environment:
-      - HOST=0.0.0.0
-      - TZ=Asia/Shanghai
-      - CSRF_TRUSTED_ORIGINS=http://yourdomain.com:21114
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:21114
+      - DatabaseType=SQLITE
+      - AllowRegistration=true
+      - TokenSalt=your_custom_salt_here
     volumes:
-      - /yourpath/db:/rustdesk-api-server/db
+      - /yourpath/db:/app/db
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     network_mode: bridge
