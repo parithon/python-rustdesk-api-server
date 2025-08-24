@@ -1,0 +1,39 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Register";
+}
+
+<div class="login-main">
+    <h3 class="text-center mb-4">Register</h3>
+    
+    @if (!string.IsNullOrEmpty(ViewBag.Error as string))
+    {
+        <div class="alert alert-danger">@ViewBag.Error</div>
+    }
+
+    @if (!string.IsNullOrEmpty(ViewBag.Success as string))
+    {
+        <div class="alert alert-success">@ViewBag.Success</div>
+    }
+
+    <form method="post">
+        <div class="mb-3">
+            <input type="text" name="username" class="form-control" placeholder="Please enter username" required />
+        </div>
+        
+        <div class="mb-3">
+            <input type="password" name="password" class="form-control" placeholder="Please enter password (8-20 characters)" required />
+        </div>
+
+        <div class="mb-3">
+            <input type="password" name="confirmPassword" class="form-control" placeholder="Please confirm password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+
+    <hr />
+    <div class="text-center">
+        <a href="/Home/Login">Already have an account? Login now</a>
+    </div>
+</div>

@@ -1,18 +1,216 @@
-# rustdesk-api-server
+# RustDesk API Server (.NET 9)
 
-
-[The English explanation is available by clicking here.](https://github.com/kingmo888/rustdesk-api-server/blob/master/README_EN.md)
+A C# implementation of the RustDesk API Server using .NET 9 and ASP.NET Core, with Web UI management capabilities.
 
 <p align="center">
-    <i>一个 python 实现的 Rustdesk API 接口，支持 WebUI 管理</i>
+    <i>A .NET 9 implementation of RustDesk API Interface with Web UI Management</i>
     <br/>
-    <img src ="https://img.shields.io/badge/Version-1.5.2-blueviolet.svg"/>
-    <img src ="https://img.shields.io/badge/Python-3.7|3.8|3.9|3.10|3.11-blue.svg" />
-    <img src ="https://img.shields.io/badge/Django-3.2+|4.x-yelow.svg" />
+    <img src ="https://img.shields.io/badge/Version-2.0.0-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/.NET-9.0-blue.svg" />
+    <img src ="https://img.shields.io/badge/ASP.NET_Core-9.0-yellow.svg" />
     <br/>
-    <img src ="https://img.shields.io/badge/Platform-Windows|Linux-green.svg"/>
+    <img src ="https://img.shields.io/badge/Platform-Windows|Linux|macOS-green.svg"/>
     <img src ="https://img.shields.io/badge/Docker-arm|arm64|amd64-blue.svg" />
 </p>
+
+## Version 2.0.0 - Complete Rewrite
+
+This version represents a complete rewrite of the RustDesk API Server from Python/Django to C#/.NET 9, featuring:
+
+- **Enhanced Performance**: Native .NET 9 performance improvements
+- **Better Maintainability**: Clean C# codebase with modern patterns
+- **Cross-Platform**: Runs on Windows, Linux, and macOS
+- **Database Support**: SQLite (default) and MySQL support
+- **Modern Web UI**: Bootstrap-based responsive interface
+- **English Language**: All text and interface in English
+
+> **Note**: You should use a custom key. Issues related to connection timeouts or prolonged connection establishment due to not configuring a key or using auto-generated server keys are not within the scope of this project.
+
+> RustDesk official requires a key in their newer server versions (rustdesk-server version >= 1.1.10 approximately)
+
+- For RustDesk version <= 1.2.3, use rustdesk-server <= 1.1.10
+  - Choose whether to configure the server's key parameter based on your needs.
+- For RustDesk version > 1.2.3, use rustdesk-server >= 1.1.11
+  - When using auto-generated keys from rustdesk-server, slow connections or timeouts may occur.
+  - Solution: Use custom keys - configure the rustdesk-server with the k parameter for custom key values, and configure the same key on the client for instant connections.
+
+## Features
+
+- **Frontend Web Registration and Login**
+  - Self-service user registration and login via web interface
+  
+- **Device Management**
+  - View and manage connected devices
+  - Device information display (admin and user versions)
+  
+- **Connection Logging**
+  - Track all remote connections
+  - View connection history and statistics
+  
+- **File Transfer Logging**
+  - Monitor file transfer activities
+  - Download transfer logs
+  
+- **User Management**
+  - Admin interface for user management
+  - User permissions and roles
+  
+- **Share Links**
+  - Generate temporary sharing links for devices
+  - Time-limited and secure sharing
+
+## Installation
+
+### Prerequisites
+
+- .NET 9 SDK
+- SQLite (default) or MySQL (optional)
+
+### Method 1: Direct Run
+
+1. Clone the repository:
+```bash
+git clone https://github.com/parithon/rustdesk-api-server.git
+cd rustdesk-api-server
+```
+
+2. Configure the application (optional):
+Edit `appsettings.json` to configure database settings, registration permissions, etc.
+
+3. Run the application:
+```bash
+dotnet run
+```
+
+4. Access the application:
+Open your browser and navigate to `http://localhost:5000`
+
+### Method 2: Build and Deploy
+
+```bash
+# Clone the repository
+git clone https://github.com/parithon/rustdesk-api-server.git
+cd rustdesk-api-server
+
+# Build the application
+dotnet build --configuration Release
+
+# Run the application
+dotnet run --configuration Release
+```
+
+### Method 3: Docker (Coming Soon)
+
+Docker support will be added in a future update.
+
+## Configuration
+
+### Database Configuration
+
+The application supports both SQLite and MySQL databases. Configure in `appsettings.json`:
+
+```json
+{
+  "DatabaseType": "SQLITE", // or "MYSQL"
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=db/db.sqlite3",
+    "MySQL": "Server=localhost;Database=rustdesk;User=root;Password=yourpassword;"
+  }
+}
+```
+
+### Environment Variables
+
+You can also configure using environment variables:
+
+- `DATABASE_TYPE`: "SQLITE" or "MYSQL"
+- `MYSQL_DBNAME`: MySQL database name
+- `MYSQL_HOST`: MySQL server host
+- `MYSQL_USER`: MySQL username
+- `MYSQL_PASSWORD`: MySQL password
+- `MYSQL_PORT`: MySQL port (default: 3306)
+- `ALLOW_REGISTRATION`: "true" or "false"
+
+### Security Configuration
+
+- Change the default admin password after first login (admin/admin123)
+- Configure HTTPS in production environments
+- Set appropriate CORS policies for your deployment
+
+## API Endpoints
+
+The server provides the following API endpoints compatible with RustDesk clients:
+
+- `POST /api/login` - User authentication
+- `POST /api/logout` - User logout
+- `POST /api/currentUser` - Get current user information
+- `GET /api/ab` - Get address book
+- `POST /api/ab` - Update address book
+- `POST /api/users` - User management
+- `POST /api/peers` - Peer management
+- `POST /api/sysinfo` - System information
+- `POST /api/heartbeat` - Heartbeat endpoint
+
+## Web Interface
+
+Access the web interface at `http://your-server:port` to:
+
+- Register new accounts (if enabled)
+- Login to your account
+- View your devices
+- Manage connections
+- View logs (admin only)
+
+## Default Credentials
+
+- Username: `admin`
+- Password: `admin123`
+
+**Important**: Change the default password immediately after first login.
+
+## System Requirements
+
+- .NET 9 Runtime
+- 512MB RAM minimum (1GB recommended)
+- 100MB disk space minimum
+- Network connectivity for RustDesk clients
+
+## Troubleshooting
+
+### Web Control Page Keeps Loading
+
+- Check if the ID server configuration is correct
+- Web control currently only supports non-SSL mode. If webui is accessed via HTTPS, remove the 's' to use HTTP, otherwise WebSocket connections will fail.
+
+### Login/Logout Issues: CSRF Verification Failed
+
+This commonly occurs with Docker + nginx reverse proxy + SSL configurations. Make sure to configure `CSRF_TRUSTED_ORIGINS` properly - use HTTPS if SSL is enabled, otherwise use HTTP.
+
+### MySQL Version Requirements
+
+If using MySQL, ensure compatibility:
+- .NET 9 with MySQL 8.0+ (recommended)
+- For MySQL 5.7, additional configuration may be required
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues.
+
+## License
+
+This project is open source. Please check the license file for details.
+
+## Migration from Python Version
+
+If you're migrating from the previous Python/Django version:
+
+1. **Backup your data**: Export your existing database
+2. **Install .NET 9**: Follow the installation instructions above
+3. **Configure database**: Update connection strings in appsettings.json
+4. **Import data**: Use database migration tools to transfer data
+5. **Update configurations**: Review and update any custom configurations
+
+The new C# version maintains API compatibility with existing RustDesk clients, so no client-side changes are required.
 
 # 1.2.3版本与1.2.6+版本区别
 #### **请使用自定义key，因不填写key、或使用服务端自动生成的key而引起的链接超时或建立链接时间过长的问题，不在本项目解决范围内。**

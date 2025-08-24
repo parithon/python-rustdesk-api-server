@@ -1,31 +1,60 @@
-# Python
-*.pyc
-*.pyo
-*.spec
-*.c
-*.pyd
-*.so
-test.py
-__pycache__
+# .NET
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+appsettings.local.json
 
-# Documents
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# NuGet
+*.nupkg
+packages/
+!packages/build/
+
+# Database
+db/*.sqlite3
+db/*.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Test files
 test
-
-
-# Files
-*.bat
-server.ico
-start.py
-
-# Build
-build
-dist
-dist-
-dist_py38
-
-LICENSE.rst
-
-db/test_db.sqlite3
-job2en.py
-
-新建文本文档.txt

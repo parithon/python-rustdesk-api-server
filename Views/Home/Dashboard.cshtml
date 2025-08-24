@@ -1,0 +1,83 @@
+@model DashboardViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Dashboard</h2>
+            <p>Welcome, <strong>@Model.User.UserName</strong>!</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">My Devices</h5>
+                    <p class="card-text">@Model.Peers.Count devices connected</p>
+                    <a href="/Home/Devices" class="btn btn-primary">View Devices</a>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.IsAdmin)
+        {
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Connection Logs</h5>
+                        <p class="card-text">View connection history</p>
+                        <a href="/Home/ConnectionLogs" class="btn btn-primary">View Logs</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">File Transfer Logs</h5>
+                        <p class="card-text">View file transfer history</p>
+                        <a href="/Home/FileLogs" class="btn btn-primary">View Logs</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.Peers.Count > 0)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <h4>Recent Devices</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Device ID</th>
+                                <th>Hostname</th>
+                                <th>Username</th>
+                                <th>Platform</th>
+                                <th>Alias</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var peer in Model.Peers.Take(10))
+                            {
+                                <tr>
+                                    <td>@peer.RustDeskId</td>
+                                    <td>@peer.Hostname</td>
+                                    <td>@peer.Username</td>
+                                    <td>@peer.Platform</td>
+                                    <td>@peer.Alias</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
