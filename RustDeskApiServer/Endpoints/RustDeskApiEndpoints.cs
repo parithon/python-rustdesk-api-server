@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using RustDeskApiServer.Data;
@@ -20,16 +21,68 @@ public static class RustDeskApiEndpoints
         group.MapGet("/ab", GetAddressBook);
         group.MapPost("/ab", PostAddressBook);
         group.MapPost("/ab/get", GetAddressBook); // sciter compatibility
-        group.MapGet("/users", () => Results.Json(new { code = 1, data = "ok" }));
+        group.MapGet("/users",  () => Results.Json(new { code = 1, data = "ok" }));
         group.MapPost("/users", () => Results.Json(new { code = 1, data = "ok" }));
-        group.MapGet("/peers", () => Results.Json(new { code = 1, data = "ok" }));
+        group.MapGet("/peers",  () => Results.Json(new { code = 1, data = "ok" }));
         group.MapPost("/peers", () => Results.Json(new { code = 1, data = "ok" }));
         group.MapPost("/currentUser", CurrentUser);
-        group.MapPost("/sysinfo", SysInfo);
+        group.MapPost("/sysinfo",   SysInfo);
         group.MapPost("/heartbeat", Heartbeat);
-        group.MapPost("/audit", Audit);
+        group.MapPost("/audit",     Audit);
+        group.MapGet("/down_peers", DownPeers).RequireAuthorization();
 
         return group;
+    }
+
+    // GET /api/down_peers — admin-only XLSX export
+    private static async Task<IResult> DownPeers(AppDbContext db, UserManager<UserProfile> userManager, HttpContext ctx)
+    {
+        var user = await userManager.GetUserAsync(ctx.User);
+        if (user is null || !user.IsAdmin) return Results.Forbid();
+
+        var devices  = await db.Devices.ToListAsync();
+        var peers    = await db.Peers.ToDictionaryAsync(p => p.RustDeskId);
+        var userIds  = peers.Values.Select(p => p.UserId).Distinct().ToList();
+        var userMap  = await db.Users
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.UserName ?? "");
+
+        var now = DateTime.UtcNow;
+
+        using var wb    = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Device Info");
+        string[] headers = ["RustDesk ID", "Owner", "Version", "System User", "Hostname",
+                             "OS", "CPU", "Memory", "IP Address", "Registered", "Updated", "Status"];
+
+        for (var j = 0; j < headers.Length; j++)
+            ws.Cell(1, j + 1).Value = headers[j];
+
+        var row = 2;
+        foreach (var dev in devices)
+        {
+            peers.TryGetValue(dev.RustDeskId, out var peer);
+            var owner  = peer is not null && userMap.TryGetValue(peer.UserId, out var un) ? un : "Not Logged In";
+            var status = (now - dev.UpdateTime).TotalSeconds <= 120 ? "Online" : "Offline";
+            ws.Cell(row, 1).Value  = dev.RustDeskId;
+            ws.Cell(row, 2).Value  = owner;
+            ws.Cell(row, 3).Value  = dev.Version;
+            ws.Cell(row, 4).Value  = dev.Username;
+            ws.Cell(row, 5).Value  = dev.Hostname;
+            ws.Cell(row, 6).Value  = dev.Os;
+            ws.Cell(row, 7).Value  = dev.Cpu;
+            ws.Cell(row, 8).Value  = dev.Memory;
+            ws.Cell(row, 9).Value  = dev.IpAddress;
+            ws.Cell(row, 10).Value = dev.CreateTime.ToLocalTime().ToString("yyyy-MM-dd");
+            ws.Cell(row, 11).Value = dev.UpdateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+            ws.Cell(row, 12).Value = status;
+            row++;
+        }
+
+        using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        return Results.File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "DeviceInfo.xlsx");
     }
 
     private static string GetClientIp(HttpContext ctx)
@@ -363,46 +416,47 @@ public static class RustDeskApiEndpoints
                 break;
             }
 
-            default when body.TryGetProperty("is_file", out _):
-            {
-                var infoStr  = body.TryGetProperty("info", out var info) ? info.GetString() ?? "{}" : "{}";
-                var infoObj  = JsonSerializer.Deserialize<JsonElement>(infoStr);
-                var files    = infoObj.TryGetProperty("files", out var f) ? f.EnumerateArray().ToArray() : [];
-                var fileSize = files.Length > 0 && files[0].GetArrayLength() > 1
-                    ? fileSizeService.FormatFileSize(files[0][1].GetInt64())
-                    : "0B";
-
-                db.FileLogs.Add(new FileLog
-                {
-                    File      = body.TryGetProperty("path",    out var path) ? path.GetString() ?? ""  : "",
-                    UserId    = body.TryGetProperty("peer_id", out var pid)  ? pid.GetString()  ?? "0" : "0",
-                    UserIp    = infoObj.TryGetProperty("ip",   out var uip)  ? uip.GetString()  ?? "0" : "0",
-                    RemoteId  = body.TryGetProperty("id",      out var rid)  ? rid.GetString()  ?? "0" : "0",
-                    FileSize  = fileSize,
-                    Direction = body.TryGetProperty("type",    out var t)    ? t.GetInt32()             : 0,
-                    LoggedAt  = DateTime.UtcNow
-                });
-                await db.SaveChangesAsync();
-                break;
-            }
-
             default:
             {
-                try
+                if (body.TryGetProperty("is_file", out _))
                 {
-                    if (body.TryGetProperty("peer", out var peer))
+                    var infoStr  = body.TryGetProperty("info", out var info) ? info.GetString() ?? "{}" : "{}";
+                    var infoObj  = JsonSerializer.Deserialize<JsonElement>(infoStr);
+                    var files    = infoObj.TryGetProperty("files", out var f) ? f.EnumerateArray().ToArray() : [];
+                    var fileSize = files.Length > 0 && files[0].GetArrayLength() > 1
+                        ? fileSizeService.FormatFileSize(files[0][1].GetInt64())
+                        : "0B";
+
+                    db.FileLogs.Add(new FileLog
                     {
-                        var peerId    = peer.GetArrayLength() > 0 ? peer[0].GetString() : null;
-                        var connId    = body.TryGetProperty("conn_id",    out var ci) ? ci.ToString() : null;
-                        var sessionId = body.TryGetProperty("session_id", out var si) ? si.ToString() : null;
-                        await db.ConnLogs
-                            .Where(l => l.ConnId == connId)
-                            .ExecuteUpdateAsync(s => s
-                                .SetProperty(l => l.SessionId, sessionId)
-                                .SetProperty(l => l.FromId,    peerId));
-                    }
+                        File      = body.TryGetProperty("path",    out var path) ? path.GetString() ?? ""  : "",
+                        UserId    = body.TryGetProperty("peer_id", out var pid)  ? pid.GetString()  ?? "0" : "0",
+                        UserIp    = infoObj.TryGetProperty("ip",   out var uip)  ? uip.GetString()  ?? "0" : "0",
+                        RemoteId  = body.TryGetProperty("id",      out var rid)  ? rid.GetString()  ?? "0" : "0",
+                        FileSize  = fileSize,
+                        Direction = body.TryGetProperty("type",    out var t)    ? t.GetInt32()             : 0,
+                        LoggedAt  = DateTime.UtcNow
+                    });
+                    await db.SaveChangesAsync();
                 }
-                catch { /* ignore audit parse errors */ }
+                else
+                {
+                    try
+                    {
+                        if (body.TryGetProperty("peer", out var peer))
+                        {
+                            var peerId    = peer.GetArrayLength() > 0 ? peer[0].GetString() : null;
+                            var connId    = body.TryGetProperty("conn_id",    out var ci) ? ci.ToString() : null;
+                            var sessionId = body.TryGetProperty("session_id", out var si) ? si.ToString() : null;
+                            await db.ConnLogs
+                                .Where(l => l.ConnId == connId)
+                                .ExecuteUpdateAsync(s => s
+                                    .SetProperty(l => l.SessionId, sessionId)
+                                    .SetProperty(l => l.FromId,    peerId));
+                        }
+                    }
+                    catch { /* ignore audit parse errors */ }
+                }
                 break;
             }
         }

@@ -48,6 +48,12 @@
               "target": "Package",
               "version": "[0.105.0, )"
             },
+            "Microsoft.AspNetCore.App.Internal.Assets": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.0.2, )",
+              "autoReferenced": true
+            },
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
               "target": "Package",
               "version": "[10.0.3, )"
@@ -67,6 +73,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[10.0.3, )"
+            },
+            "MudBlazor": {
+              "target": "Package",
+              "version": "[9.0.0, )"
             },
             "Pomelo.EntityFrameworkCore.MySql": {
               "target": "Package",

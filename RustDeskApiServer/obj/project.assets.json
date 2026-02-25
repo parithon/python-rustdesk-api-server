@@ -93,6 +93,16 @@
           }
         }
       },
+      "Microsoft.AspNetCore.App.Internal.Assets/10.0.2": {
+        "type": "package",
+        "build": {
+          "build/Microsoft.AspNetCore.App.Internal.Assets.props": {},
+          "buildTransitive/Microsoft.AspNetCore.App.Internal.Assets.targets": {}
+        },
+        "buildMultiTargeting": {
+          "buildMultiTargeting/Microsoft.AspNetCore.App.Internal.Assets.targets": {}
+        }
+      },
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore/10.0.3": {
         "type": "package",
         "dependencies": {
@@ -614,6 +624,26 @@
           "buildTransitive/Mono.TextTemplating.targets": {}
         }
       },
+      "MudBlazor/9.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/MudBlazor.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/MudBlazor.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "build/MudBlazor.targets": {},
+          "buildTransitive/MudBlazor.props": {}
+        },
+        "buildMultiTargeting": {
+          "buildMultiTargeting/MudBlazor.props": {}
+        }
+      },
       "MySqlConnector/2.4.0": {
         "type": "package",
         "compile": {
@@ -1084,6 +1114,29 @@
         "lib/netstandard2.0/Humanizer.dll",
         "lib/netstandard2.0/Humanizer.xml",
         "logo.png"
+      ]
+    },
+    "Microsoft.AspNetCore.App.Internal.Assets/10.0.2": {
+      "sha512": "fMAqrUm+aspxRAsCJ6Hlgs96XSHwNIr9HBNt7wyBAzQkPlfE7w+0C4NzDoJnso5YZyDI0VcRtEXxG9odt3KiZA==",
+      "type": "package",
+      "path": "microsoft.aspnetcore.app.internal.assets/10.0.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "THIRD-PARTY-NOTICES.TXT",
+        "_framework/blazor.server.js",
+        "_framework/blazor.server.js.map",
+        "_framework/blazor.web.js",
+        "_framework/blazor.web.js.map",
+        "_framework/blazor.webassembly.js",
+        "_framework/blazor.webassembly.js.map",
+        "build/Microsoft.AspNetCore.App.Internal.Assets.props",
+        "build/Microsoft.AspNetCore.App.Internal.Assets.targets",
+        "buildMultiTargeting/Microsoft.AspNetCore.App.Internal.Assets.targets",
+        "buildTransitive/Microsoft.AspNetCore.App.Internal.Assets.targets",
+        "microsoft.aspnetcore.app.internal.assets.10.0.2.nupkg.sha512",
+        "microsoft.aspnetcore.app.internal.assets.nuspec"
       ]
     },
     "Microsoft.AspNetCore.Identity.EntityFrameworkCore/10.0.3": {
@@ -2394,6 +2447,37 @@
         "readme.md"
       ]
     },
+    "MudBlazor/9.0.0": {
+      "sha512": "sXE0gH+yuJe4bkfz0EqFI9LV+9M0ofMoyVUIWohtx1ofXNhV5fsjl/3NBsTzjQsU5y4qdOyBGedybpT1zL5C5g==",
+      "type": "package",
+      "path": "mudblazor/9.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "Nuget.png",
+        "README.md",
+        "analyzers/dotnet/cs/MudBlazor.Analyzers.CodeFixes.dll",
+        "analyzers/dotnet/cs/MudBlazor.Analyzers.dll",
+        "build/Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+        "build/Microsoft.AspNetCore.StaticWebAssets.props",
+        "build/MudBlazor.props",
+        "build/MudBlazor.targets",
+        "buildMultiTargeting/MudBlazor.props",
+        "buildTransitive/MudBlazor.props",
+        "lib/net10.0/MudBlazor.dll",
+        "lib/net10.0/MudBlazor.xml",
+        "lib/net8.0/MudBlazor.dll",
+        "lib/net8.0/MudBlazor.xml",
+        "lib/net9.0/MudBlazor.dll",
+        "lib/net9.0/MudBlazor.xml",
+        "mudblazor.9.0.0.nupkg.sha512",
+        "mudblazor.nuspec",
+        "staticwebassets/MudBlazor.min.css",
+        "staticwebassets/MudBlazor.min.js",
+        "staticwebassets/MudBlazor.min.js.map"
+      ]
+    },
     "MySqlConnector/2.4.0": {
       "sha512": "78M+gVOjbdZEDIyXQqcA7EYlCGS3tpbUELHvn6638A2w0pkPI625ixnzsa5staAd3N9/xFmPJtkKDYwsXpFi/w==",
       "type": "package",
@@ -2817,10 +2901,12 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "ClosedXML >= 0.105.0",
+      "Microsoft.AspNetCore.App.Internal.Assets >= 10.0.2",
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore >= 10.0.3",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.3",
       "Microsoft.EntityFrameworkCore.Sqlite >= 10.0.3",
       "Microsoft.EntityFrameworkCore.Tools >= 10.0.3",
+      "MudBlazor >= 9.0.0",
       "Pomelo.EntityFrameworkCore.MySql >= 9.0.0"
     ]
   },
@@ -2871,6 +2957,12 @@
             "target": "Package",
             "version": "[0.105.0, )"
           },
+          "Microsoft.AspNetCore.App.Internal.Assets": {
+            "suppressParent": "All",
+            "target": "Package",
+            "version": "[10.0.2, )",
+            "autoReferenced": true
+          },
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
             "target": "Package",
             "version": "[10.0.3, )"
@@ -2890,6 +2982,10 @@
             "suppressParent": "All",
             "target": "Package",
             "version": "[10.0.3, )"
+          },
+          "MudBlazor": {
+            "target": "Package",
+            "version": "[9.0.0, )"
           },
           "Pomelo.EntityFrameworkCore.MySql": {
             "target": "Package",

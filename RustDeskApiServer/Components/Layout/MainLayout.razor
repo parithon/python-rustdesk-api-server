@@ -1,0 +1,67 @@
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider FullWidth="true" />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary" Dense="true">
+        <MudText Typo="Typo.h6" Class="ml-2">RustDesk Web</MudText>
+        <MudSpacer />
+        @if (username is not null)
+        {
+            <MudText Class="mr-3" Typo="Typo.body2">@username</MudText>
+        }
+        <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                       Color="Color.Inherit"
+                       Href="/account/logout"
+                       title="Logout" />
+    </MudAppBar>
+
+    <MudDrawer Open="true" Variant="DrawerVariant.Mini" Elevation="1" ClipMode="DrawerClipMode.Always">
+        <MudNavMenu>
+            <MudNavLink Href="/work" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.Prefix">
+                My Devices
+            </MudNavLink>
+            @if (isAdmin)
+            {
+                <MudNavLink Href="/work?show_type=admin" Icon="@Icons.Material.Filled.Devices">
+                    All Devices
+                </MudNavLink>
+            }
+            <MudNavLink Href="/share" Icon="@Icons.Material.Filled.Share" Match="NavLinkMatch.Prefix">
+                Share
+            </MudNavLink>
+            <MudNavLink Href="/webui" Icon="@Icons.Material.Filled.DesktopWindows" Match="NavLinkMatch.Prefix">
+                Web Control
+            </MudNavLink>
+            @if (isAdmin)
+            {
+                <MudNavGroup Title="Logs" Icon="@Icons.Material.Filled.ListAlt" Expanded="false">
+                    <MudNavLink Href="/conn-log">Connection Log</MudNavLink>
+                    <MudNavLink Href="/file-log">File Transfer Log</MudNavLink>
+                </MudNavGroup>
+            }
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-6 pb-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool isAdmin;
+    private string? username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        username = authState.User.Identity?.Name;
+        isAdmin  = authState.User.HasClaim("IsAdmin", "true");
+    }
+}

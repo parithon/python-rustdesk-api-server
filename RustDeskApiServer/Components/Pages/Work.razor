@@ -1,0 +1,213 @@
+@page "/work"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<UserProfile> UserManager
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard — RustDesk Web</PageTitle>
+
+@if (currentUser is null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudText Typo="Typo.h5">
+            @(showAll ? "All Devices" : $"My Devices — {currentUser.UserName}")
+        </MudText>
+        <MudSpacer />
+        @if (currentUser.IsAdmin)
+        {
+            <MudSwitch T="bool"
+                       Value="showAll"
+                       ValueChanged="OnToggleView"
+                       Color="Color.Primary"
+                       Label="@(showAll ? "Show My Devices" : "Show All Devices")" />
+            @if (showAll)
+            {
+                <MudButton Href="/api/down_peers"
+                           Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.FileDownload"
+                           Size="Size.Small">
+                    Export XLSX
+                </MudButton>
+            }
+        }
+    </MudStack>
+
+    <MudTable Items="devices"
+              Dense="true"
+              Hover="true"
+              Striped="true"
+              Loading="isLoading"
+              LoadingProgressColor="Color.Primary"
+              RowsPerPage="15">
+        <HeaderContent>
+            @if (!showAll)
+            {
+                <MudTh>Client ID</MudTh>
+                <MudTh>Version</MudTh>
+                <MudTh>Has Password</MudTh>
+                <MudTh>System User</MudTh>
+                <MudTh>Hostname</MudTh>
+                <MudTh>Alias</MudTh>
+                <MudTh>Platform</MudTh>
+                <MudTh>OS</MudTh>
+                <MudTh>CPU</MudTh>
+                <MudTh>Memory</MudTh>
+                <MudTh>IP</MudTh>
+                <MudTh>Registered</MudTh>
+                <MudTh>Updated</MudTh>
+                <MudTh>Status</MudTh>
+            }
+            else
+            {
+                <MudTh>Client ID</MudTh>
+                <MudTh>Owner</MudTh>
+                <MudTh>Version</MudTh>
+                <MudTh>System User</MudTh>
+                <MudTh>Hostname</MudTh>
+                <MudTh>OS</MudTh>
+                <MudTh>CPU</MudTh>
+                <MudTh>Memory</MudTh>
+                <MudTh>IP</MudTh>
+                <MudTh>Registered</MudTh>
+                <MudTh>Updated</MudTh>
+                <MudTh>Status</MudTh>
+            }
+        </HeaderContent>
+        <RowTemplate>
+            @if (!showAll)
+            {
+                <MudTd DataLabel="Client ID">@context.RustDeskId</MudTd>
+                <MudTd DataLabel="Version">@context.Version</MudTd>
+                <MudTd DataLabel="Has Password">@context.HasRHash</MudTd>
+                <MudTd DataLabel="System User">@context.Username</MudTd>
+                <MudTd DataLabel="Hostname">@context.Hostname</MudTd>
+                <MudTd DataLabel="Alias">@context.Alias</MudTd>
+                <MudTd DataLabel="Platform">@context.Platform</MudTd>
+                <MudTd DataLabel="OS">@context.Os</MudTd>
+                <MudTd DataLabel="CPU">@context.Cpu</MudTd>
+                <MudTd DataLabel="Memory">@context.Memory</MudTd>
+                <MudTd DataLabel="IP">@context.IpAddress</MudTd>
+                <MudTd DataLabel="Registered">@context.CreateTime</MudTd>
+                <MudTd DataLabel="Updated">@context.UpdateTime</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@(context.Status == "Online" ? Color.Success : Color.Default)" Size="Size.Small">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+            }
+            else
+            {
+                <MudTd DataLabel="Client ID">@context.RustDeskId</MudTd>
+                <MudTd DataLabel="Owner">@context.RustUser</MudTd>
+                <MudTd DataLabel="Version">@context.Version</MudTd>
+                <MudTd DataLabel="System User">@context.Username</MudTd>
+                <MudTd DataLabel="Hostname">@context.Hostname</MudTd>
+                <MudTd DataLabel="OS">@context.Os</MudTd>
+                <MudTd DataLabel="CPU">@context.Cpu</MudTd>
+                <MudTd DataLabel="Memory">@context.Memory</MudTd>
+                <MudTd DataLabel="IP">@context.IpAddress</MudTd>
+                <MudTd DataLabel="Registered">@context.CreateTime</MudTd>
+                <MudTd DataLabel="Updated">@context.UpdateTime</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@(context.Status == "Online" ? Color.Success : Color.Default)" Size="Size.Small">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+            }
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 15, 30, 50 }" />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "show_type")] public string? ShowType { get; set; }
+
+    private UserProfile?        currentUser;
+    private bool                showAll;
+    private bool                isLoading = true;
+    private List<DeviceRow>     devices   = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUser   = await UserManager.GetUserAsync(authState.User);
+        if (currentUser is null) { Nav.NavigateTo("/login", forceLoad: true); return; }
+
+        showAll = ShowType == "admin" && currentUser.IsAdmin;
+        await LoadDevices();
+    }
+
+    private async Task OnToggleView(bool value)
+    {
+        showAll = value;
+        Nav.NavigateTo(showAll ? "/work?show_type=admin" : "/work", forceLoad: false);
+        await LoadDevices();
+    }
+
+    private async Task LoadDevices()
+    {
+        isLoading = true;
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        if (showAll)
+        {
+            var allDevices = await db.Devices.ToListAsync();
+            var allPeers   = await db.Peers.ToDictionaryAsync(p => p.RustDeskId);
+            var userIds    = allPeers.Values.Select(p => p.UserId).Distinct().ToList();
+            var userMap    = await db.Users
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.UserName ?? "");
+            var now = DateTime.UtcNow;
+
+            devices = allDevices.Select(dev =>
+            {
+                allPeers.TryGetValue(dev.RustDeskId, out var peer);
+                var owner = peer is not null && userMap.TryGetValue(peer.UserId, out var un) ? un : "Not Logged In";
+                return new DeviceRow(dev, peer, owner,
+                    (now - dev.UpdateTime).TotalSeconds <= 120 ? "Online" : "Offline");
+            }).ToList();
+        }
+        else
+        {
+            var myPeers  = await db.Peers.Where(p => p.UserId == currentUser!.Id).ToListAsync();
+            var rids     = myPeers.Select(p => p.RustDeskId).ToList();
+            var devMap   = await db.Devices.Where(d => rids.Contains(d.RustDeskId))
+                                           .ToDictionaryAsync(d => d.RustDeskId);
+            var now = DateTime.UtcNow;
+
+            devices = myPeers.Select(peer =>
+            {
+                devMap.TryGetValue(peer.RustDeskId, out var dev);
+                return new DeviceRow(dev, peer, "",
+                    dev is not null && (now - dev.UpdateTime).TotalSeconds <= 120 ? "Online" : "Offline");
+            }).ToList();
+        }
+
+        isLoading = false;
+    }
+
+    private sealed record DeviceRow(RustDeskDevice? Device, RustDeskPeer? Peer, string RustUser, string Status)
+    {
+        public string RustDeskId  => Peer?.RustDeskId  ?? Device?.RustDeskId ?? "";
+        public string Version     => Device?.Version   ?? "";
+        public string HasRHash    => (Peer?.RHash.Length ?? 0) > 1 ? "Yes" : "No";
+        public string Username    => Peer?.Username    ?? Device?.Username ?? "";
+        public string Hostname    => Peer?.Hostname    ?? Device?.Hostname ?? "";
+        public string Alias       => Peer?.Alias       ?? "";
+        public string Platform    => Peer?.Platform    ?? "";
+        public string Os          => Device?.Os        ?? "";
+        public string Cpu         => Device?.Cpu       ?? "";
+        public string Memory      => Device?.Memory    ?? "";
+        public string IpAddress   => Device?.IpAddress ?? "";
+        public string CreateTime  => Device?.CreateTime.ToLocalTime().ToString("yyyy-MM-dd") ?? "";
+        public string UpdateTime  => Device?.UpdateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "";
+    }
+}
