@@ -1,4 +1,4 @@
-{% load static %}<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -14,18 +14,17 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/web_client/favicon.svg" />
 
-  <title>RustDesk Web桌面</title>
-  <link rel="manifest" href="{% static "/web_client/manifest.json" %}">
-  <script src=></script>
-  <script src="{% static "/web_client/ogvjs-1.8.6/ogv.js" %}"></script>
+  <title>RustDesk Web Desktop</title>
+  <link rel="manifest" href="/web_client/manifest.json">
+  <script src="/web_client/ogvjs-1.8.6/ogv.js"></script>
   <script>
       var api = ["{{domain}}"];
   </script>
-  <script type="module" crossorigin src={% static "/web_client/module/index.b7bb6fa2.js" %}></script>
-  
-  <script src="{% static "/web_client/js/yuv-canvas-1.2.6.js" %}"></script>
+  <script type="module" crossorigin src="/web_client/module/index.b7bb6fa2.js"></script>
+
+  <script src="/web_client/js/yuv-canvas-1.2.6.js"></script>
   <style>
     .loading {
       display: flex;
@@ -92,7 +91,7 @@
       }
       scriptLoaded = true;
       var scriptTag = document.createElement('script');
-      scriptTag.src = '{% static "/web_client/js/main.dart.js" %}';
+      scriptTag.src = '/web_client/js/main.dart.js';
       scriptTag.type = 'application/javascript';
       document.body.append(scriptTag);
     }
@@ -103,7 +102,7 @@
         // Wait for registration to finish before dropping the <script> tag.
         // Otherwise, the browser will load the script multiple times,
         // potentially different versions.
-        var serviceWorkerUrl = '{% static "/web_client/flutter_service_worker.js" %}?v=' + serviceWorkerVersion;
+        var serviceWorkerUrl = '/web_client/flutter_service_worker.js?v=' + serviceWorkerVersion;
         navigator.serviceWorker.register(serviceWorkerUrl)
           .then((reg) => {
             function waitForActivation(serviceWorker) {
@@ -132,7 +131,7 @@
           });
 
         // If service worker doesn't succeed in a reasonable amount of time,
-        // fallback to plaint <script> tag.
+        // fallback to plain <script> tag.
         setTimeout(() => {
           if (!scriptLoaded) {
             console.warn(
@@ -147,11 +146,10 @@
       loadMainDartJs();
     }
   </script>
-  <script src={% static "/web_client/libs/firebase-app.js" %}?8.10.1"></script>
+  <script src="/web_client/libs/firebase-app.js?8.10.1"></script>
 
   <script>
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyCgehIZk1aFP0E7wZtYRRqrfvNiNAF39-A",
       authDomain: "rustdesk.firebaseapp.com",
@@ -165,7 +163,6 @@
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    //firebase.analytics();
   </script>
 </body>
 
