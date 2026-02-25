@@ -35,6 +35,7 @@ RustDeskApiServer/obj/
 *.user
 .vs/
 
-# SQLite WAL files
+# SQLite database files (generated at runtime)
+db/*.sqlite3
 db/*.sqlite3-shm
 db/*.sqlite3-wal
