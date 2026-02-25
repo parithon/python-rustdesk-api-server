@@ -1,0 +1,52 @@
+@using RustDeskApiServer.ViewModels
+@model FileLogPageViewModel
+@{
+    ViewData["Title"] = "RustDesk WebUI";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section LegendName { File Transfer Log }
+
+<div style="padding: 20px; background-color: #F2F2F2;">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md15">
+            <div class="layui-card">
+                <div class="layui-card-header">File Transfer Log: [@Model.User.UserName]</div>
+                <div class="layui-card-body">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Remote ID</th>
+                            <th>Remote Alias</th>
+                            <th>User ID</th>
+                            <th>User Alias</th>
+                            <th>User IP</th>
+                            <th>File Size</th>
+                            <th>Direction</th>
+                            <th>Logged At</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.File</td>
+                                <td>@item.RemoteId</td>
+                                <td>@item.RemoteAlias</td>
+                                <td>@item.UserId</td>
+                                <td>@item.UserAlias</td>
+                                <td>@item.UserIp</td>
+                                <td>@item.FileSize</td>
+                                <td>@(item.Direction == 0 ? "User Received File" : "User Sent File")</td>
+                                <td>@item.LoggedAt</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @await Html.PartialAsync("_Pagination", (Model.PageNumber, Model.TotalPages, ""))
+    </div>
+</div>

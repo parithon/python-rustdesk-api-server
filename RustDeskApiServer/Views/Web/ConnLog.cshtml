@@ -1,0 +1,50 @@
+@using RustDeskApiServer.ViewModels
+@model ConnLogPageViewModel
+@{
+    ViewData["Title"] = "RustDesk WebUI";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section LegendName { Connection Log }
+
+<div style="padding: 20px; background-color: #F2F2F2;">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md15">
+            <div class="layui-card">
+                <div class="layui-card-header">Connection Log: [@Model.User.UserName]</div>
+                <div class="layui-card-body">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>User IP</th>
+                            <th>User ID</th>
+                            <th>User Alias</th>
+                            <th>Remote ID</th>
+                            <th>Remote Alias</th>
+                            <th>Connection Start</th>
+                            <th>Connection End</th>
+                            <th>Duration (HH:MM:SS)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.FromIp</td>
+                                <td>@item.FromId</td>
+                                <td>@item.FromAlias</td>
+                                <td>@item.RustDeskId</td>
+                                <td>@item.Alias</td>
+                                <td>@item.ConnStart</td>
+                                <td>@item.ConnEnd</td>
+                                <td>@item.Duration</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @await Html.PartialAsync("_Pagination", (Model.PageNumber, Model.TotalPages, ""))
+    </div>
+</div>

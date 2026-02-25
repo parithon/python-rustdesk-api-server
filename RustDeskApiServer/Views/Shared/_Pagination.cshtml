@@ -1,0 +1,25 @@
+@model (int PageNumber, int TotalPages, string ExtraQuery)
+@{
+    var prev = Model.PageNumber - 1;
+    var next = Model.PageNumber + 1;
+    var extra = Model.ExtraQuery;
+}
+
+<div class="layui-col-md4 layui-col-md-offset4">
+    <span class="step-links">
+        @if (Model.PageNumber > 1)
+        {
+            <button class="layui-btn"><a href="?@(extra)page=1">&laquo; First</a></button>
+            <button class="layui-btn"><a href="?@(extra)page=@prev">Previous</a></button>
+        }
+        @if (Model.TotalPages > 1)
+        {
+            <span class="current">Page @Model.PageNumber / @Model.TotalPages</span>
+        }
+        @if (Model.PageNumber < Model.TotalPages)
+        {
+            <button class="layui-btn"><a href="?@(extra)page=@next">Next</a></button>
+            <button class="layui-btn"><a href="?@(extra)page=@Model.TotalPages">Last &raquo;</a></button>
+        }
+    </span>
+</div>
