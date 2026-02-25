@@ -112,17 +112,6 @@ app.MapGet("/account/logout", async (SignInManager<UserProfile> sm) =>
     return Results.Redirect("/login");
 });
 
-// ── WebUI content (injects domain into the Flutter web client) ────────────────
-app.MapGet("/webui-content", (IConfiguration config, HttpContext ctx) =>
-{
-    var domain   = config.GetValue("IdServer", "") ?? "";
-    if (string.IsNullOrEmpty(domain)) domain = ctx.Request.Host.Host;
-    var filePath = Path.Combine(app.Environment.WebRootPath, "web_client", "webui.html");
-    if (!File.Exists(filePath)) return Results.NotFound("Web client files not found.");
-    var html = File.ReadAllText(filePath).Replace("{{domain}}", domain);
-    return Results.Content(html, "text/html");
-}).RequireAuthorization();
-
 // ── RustDesk Minimal API endpoints ───────────────────────────────────────────
 app.MapRustDeskApi();
 

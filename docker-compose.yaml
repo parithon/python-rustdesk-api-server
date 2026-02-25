@@ -17,8 +17,6 @@ services:
       # - MySql__Password=yourpassword
       # Allow new user registration (true/false)
       - AllowRegistration=true
-      # Optional: set to your server's public IP/hostname for the web client
-      # - IdServer=yourdomain.com
     volumes:
       - /yourpath/db:/app/db
     network_mode: bridge
