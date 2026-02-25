@@ -1,24 +1,26 @@
-FROM python:3.10.3-alpine
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
 
-WORKDIR /rustdesk-api-server
-ADD . /rustdesk-api-server
+COPY RustDeskApiServer/RustDeskApiServer.csproj RustDeskApiServer/
+RUN dotnet restore RustDeskApiServer/RustDeskApiServer.csproj
 
-# 安装系统依赖
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    mariadb-connector-c-dev \
-    pkgconfig
+COPY RustDeskApiServer/ RustDeskApiServer/
+RUN dotnet publish RustDeskApiServer/RustDeskApiServer.csproj \
+    -c Release -o /app/publish --no-restore
 
-RUN set -ex \
-    && pip install --no-cache-dir --disable-pip-version-check -r requirements.txt \
-    && rm -rf /var/cache/apk/* \
-    && cp -r ./db ./db_bak
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
 
-ENV HOST="0.0.0.0"
-ENV TZ="Asia/Shanghai"
+RUN mkdir -p /app/db
+
+COPY --from=build /app/publish .
+# Copy static web client assets if present
+COPY --from=build /src/RustDeskApiServer/wwwroot ./wwwroot
+
+ENV ASPNETCORE_URLS=http://0.0.0.0:21114
+ENV TZ=UTC
 
 EXPOSE 21114/tcp
 EXPOSE 21114/udp
 
-ENTRYPOINT ["sh", "run.sh"]
+ENTRYPOINT ["dotnet", "RustDeskApiServer.dll"]

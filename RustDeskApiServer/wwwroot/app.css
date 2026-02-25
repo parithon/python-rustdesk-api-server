@@ -1,0 +1,9 @@
+/* Login page centering */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--mud-palette-background-grey);
+    padding: 1rem;
+}

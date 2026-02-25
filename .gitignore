@@ -11,7 +11,6 @@ __pycache__
 # Documents
 test
 
-
 # Files
 *.bat
 server.ico
@@ -29,3 +28,14 @@ db/test_db.sqlite3
 job2en.py
 
 新建文本文档.txt
+
+# .NET
+RustDeskApiServer/bin/
+RustDeskApiServer/obj/
+*.user
+.vs/
+
+# SQLite database files (generated at runtime)
+db/*.sqlite3
+db/*.sqlite3-shm
+db/*.sqlite3-wal

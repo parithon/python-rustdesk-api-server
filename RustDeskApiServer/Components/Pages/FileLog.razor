@@ -1,0 +1,108 @@
+@page "/file-log"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<UserProfile> UserManager
+@inject NavigationManager Nav
+
+<PageTitle>File Transfer Log — RustDesk Web</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">File Transfer Log</MudText>
+
+<MudTable Items="rows"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          Loading="isLoading"
+          LoadingProgressColor="Color.Primary"
+          RowsPerPage="20">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString"
+                      Placeholder="Search"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Medium"
+                      Class="mt-0" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>File</MudTh>
+        <MudTh>Remote ID</MudTh>
+        <MudTh>Remote Alias</MudTh>
+        <MudTh>User ID</MudTh>
+        <MudTh>User Alias</MudTh>
+        <MudTh>User IP</MudTh>
+        <MudTh>File Size</MudTh>
+        <MudTh>Direction</MudTh>
+        <MudTh>Logged At</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="File">@context.File</MudTd>
+        <MudTd DataLabel="Remote ID">@context.RemoteId</MudTd>
+        <MudTd DataLabel="Remote Alias">@context.RemoteAlias</MudTd>
+        <MudTd DataLabel="User ID">@context.UserId</MudTd>
+        <MudTd DataLabel="User Alias">@context.UserAlias</MudTd>
+        <MudTd DataLabel="User IP">@context.UserIp</MudTd>
+        <MudTd DataLabel="File Size">@context.FileSize</MudTd>
+        <MudTd DataLabel="Direction">
+            <MudChip T="string" Size="Size.Small"
+                     Icon="@(context.Direction == 0 ? Icons.Material.Filled.Download : Icons.Material.Filled.Upload)"
+                     Color="@(context.Direction == 0 ? Color.Info : Color.Success)">
+                @(context.Direction == 0 ? "Received" : "Sent")
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Logged At">@context.LoggedAt</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 20, 50, 100 }" />
+    </PagerContent>
+    <NoRecordsContent>
+        <MudText>No file transfer logs found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private bool              isLoading    = true;
+    private string?           searchString;
+    private List<FileLogRow>  rows         = [];
+
+    private sealed record FileLogRow(
+        string  File,
+        string  RemoteId,
+        string  RemoteAlias,
+        string  UserId,
+        string  UserAlias,
+        string  UserIp,
+        string  FileSize,
+        int     Direction,
+        string? LoggedAt);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState   = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        if (currentUser is null) { Nav.NavigateTo("/login", forceLoad: true); return; }
+
+        await using var db   = await DbFactory.CreateDbContextAsync();
+        var logs              = await db.FileLogs.OrderByDescending(l => l.LoggedAt).ToListAsync();
+        var peerAliasMap      = await db.Peers.ToDictionaryAsync(p => p.RustDeskId, p => p.Alias);
+
+        rows = logs.Select(log =>
+        {
+            peerAliasMap.TryGetValue(log.RemoteId, out var remoteAlias);
+            peerAliasMap.TryGetValue(log.UserId,   out var userAlias);
+            return new FileLogRow(
+                File:        log.File,
+                RemoteId:    log.RemoteId,
+                RemoteAlias: remoteAlias ?? "UNKNOWN",
+                UserId:      log.UserId,
+                UserAlias:   userAlias   ?? "UNKNOWN",
+                UserIp:      log.UserIp,
+                FileSize:    log.FileSize,
+                Direction:   log.Direction,
+                LoggedAt:    log.LoggedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
+        }).ToList();
+
+        isLoading = false;
+    }
+}

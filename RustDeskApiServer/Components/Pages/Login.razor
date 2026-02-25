@@ -1,0 +1,90 @@
+@page "/login"
+@layout LoginLayout
+@inject SignInManager<UserProfile> SignInManager
+@inject NavigationManager Nav
+
+<PageTitle>Login — RustDesk Web</PageTitle>
+
+<MudThemeProvider />
+
+<EditForm Model="Input" method="post" OnValidSubmit="HandleLogin" FormName="login">
+    <DataAnnotationsValidator />
+    <MudCard Elevation="4" Style="max-width:400px; margin:auto;">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Align="Align.Center">RustDesk Web</MudText>
+                <MudText Typo="Typo.subtitle2" Align="Align.Center" Class="mt-1">Sign in to your account</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@errorMessage</MudAlert>
+            }
+            <MudTextField @bind-Value="Input!.Username"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-3"
+                          Required="true"
+                          For="@(() => Input!.Username)" />
+            <MudTextField @bind-Value="Input!.Password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          Required="true"
+                          For="@(() => Input!.Password)" />
+        </MudCardContent>
+        <MudCardActions Class="px-4 pb-4 d-flex flex-column gap-2">
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large">
+                Login
+            </MudButton>
+            <MudLink Href="/register" Typo="Typo.body2" Class="text-center">
+                Don't have an account? Register now
+            </MudLink>
+        </MudCardActions>
+    </MudCard>
+</EditForm>
+
+@code {
+    [CascadingParameter] public HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm] public LoginModel? Input { get; set; }
+
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new LoginModel();
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+            Nav.NavigateTo(ReturnUrl ?? "/work");
+    }
+
+    private async Task HandleLogin()
+    {
+        if (Input is null) return;
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Username, Input.Password, isPersistent: false, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+            Nav.NavigateTo(ReturnUrl ?? "/work");
+        else
+            errorMessage = "Invalid username or password.";
+    }
+
+    public sealed class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Username { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,122 @@
+@page "/register"
+@layout LoginLayout
+@inject UserManager<UserProfile> UserManager
+@inject NavigationManager Nav
+@inject IConfiguration Config
+
+<PageTitle>Register — RustDesk Web</PageTitle>
+
+<MudThemeProvider />
+
+<EditForm Model="Input" method="post" OnValidSubmit="HandleRegister" FormName="register">
+    <DataAnnotationsValidator />
+    <MudCard Elevation="4" Style="max-width:400px; margin:auto;">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5" Align="Align.Center">Create Account</MudText>
+                <MudText Typo="Typo.subtitle2" Align="Align.Center" Class="mt-1">RustDesk Web Registration</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            @if (message is not null)
+            {
+                <MudAlert Severity="@messageSeverity" Dense="true" Class="mb-4">@message</MudAlert>
+            }
+            <MudTextField @bind-Value="Input!.Username"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-3"
+                          Required="true"
+                          HelperText="Must be more than 3 characters"
+                          For="@(() => Input!.Username)" />
+            <MudTextField @bind-Value="Input!.Password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          Class="mb-3"
+                          Required="true"
+                          HelperText="8–20 characters"
+                          For="@(() => Input!.Password)" />
+            <MudTextField @bind-Value="Input!.ConfirmPassword"
+                          Label="Confirm Password"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          Required="true"
+                          For="@(() => Input!.ConfirmPassword)" />
+        </MudCardContent>
+        <MudCardActions Class="px-4 pb-4 d-flex flex-column gap-2">
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large">
+                Register
+            </MudButton>
+            <MudLink Href="/login" Typo="Typo.body2" Class="text-center">
+                Already have an account? Login
+            </MudLink>
+        </MudCardActions>
+    </MudCard>
+</EditForm>
+
+@code {
+    [CascadingParameter] public HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm] public RegisterModel? Input { get; set; }
+
+    private string?        message;
+    private Severity       messageSeverity = Severity.Error;
+
+    protected override void OnInitialized() => Input ??= new RegisterModel();
+
+    private async Task HandleRegister()
+    {
+        if (Input is null) return;
+        if (!Config.GetValue("AllowRegistration", true))
+        {
+            message = "Registration is currently closed. Please contact the administrator.";
+            return;
+        }
+
+        if (Input.Username.Length <= 3)        { message = "Username must be more than 3 characters."; return; }
+        if (Input.Password.Length < 8 || Input.Password.Length > 20) { message = "Password must be between 8 and 20 characters."; return; }
+        if (Input.Password != Input.ConfirmPassword)                  { message = "Passwords do not match."; return; }
+
+        if (await UserManager.FindByNameAsync(Input.Username) is not null)
+        { message = "Username already exists."; return; }
+
+        var isFirst  = !UserManager.Users.Any();
+        var newUser  = new UserProfile
+        {
+            UserName         = Input.Username,
+            IsAdmin          = isFirst,
+            EmailConfirmed   = true
+        };
+
+        var result = await UserManager.CreateAsync(newUser, Input.Password);
+        if (!result.Succeeded)
+        {
+            message = string.Join(" ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        messageSeverity = Severity.Success;
+        message         = "Registration successful! Please login.";
+        Nav.NavigateTo("/login");
+    }
+
+    public sealed class RegisterModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Username { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

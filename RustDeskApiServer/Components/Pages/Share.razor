@@ -1,0 +1,221 @@
+@page "/share"
+@page "/share/{Hash}"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ITokenService TokenService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<UserProfile> UserManager
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>Share — RustDesk Web</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Share Devices with Other Users</MudText>
+
+@if (Hash is not null)
+{
+    <!-- Visited a share link -->
+    <MudAlert Severity="@resultSeverity">@resultMessage</MudAlert>
+    <MudButton Href="/share" Class="mt-3" Variant="Variant.Text">Back to Share</MudButton>
+}
+else
+{
+    <MudGrid>
+        <!-- Left: device selector -->
+        <MudItem xs="12" md="6">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Select Devices to Share</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (!myPeers.Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No devices in your address book yet.</MudText>
+                    }
+                    else
+                    {
+                        <MudList T="RustDeskPeer" SelectionMode="SelectionMode.MultiSelection" @bind-SelectedValues="selectedPeers">
+                            @foreach (var peer in myPeers)
+                            {
+                                <MudListItem Value="peer" Icon="@Icons.Material.Filled.Computer">
+                                    <MudText Typo="Typo.body1">@peer.RustDeskId</MudText>
+                                    @if (!string.IsNullOrEmpty(peer.Alias))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@peer.Alias</MudText>
+                                    }
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Link"
+                               OnClick="GenerateShareLink"
+                               Disabled="@(!selectedPeers.Any())">
+                        Generate Share Link
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+
+            @if (!string.IsNullOrEmpty(generatedLink))
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3" Icon="@Icons.Material.Filled.Link">
+                    <MudText Typo="Typo.body2">Copy and send this link — valid for 15 minutes, single use:</MudText>
+                    <MudText Typo="Typo.body1"><strong>@generatedLink</strong></MudText>
+                </MudAlert>
+            }
+        </MudItem>
+
+        <!-- Right: notices -->
+        <MudItem xs="12" md="6">
+            <MudCard Outlined="true">
+                <MudCardHeader>
+                    <CardHeaderContent><MudText Typo="Typo.h6">Notice</MudText></CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="d-flex flex-column gap-2">
+                    <MudAlert Severity="Severity.Info" Dense="true">Links expire in 15 minutes. Do not share with strangers.</MudAlert>
+                    <MudAlert Severity="Severity.Info" Dense="true">Shared devices grant the same permissions as the owner. If a saved password exists, the recipient can connect directly.</MudAlert>
+                    <MudAlert Severity="Severity.Warning" Dense="true">Each link can only be used once. Once accessed, the share takes effect and the link becomes invalid.</MudAlert>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Active share links table -->
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2">Active Share Links</MudText>
+    <MudTable Items="shareLinks" Dense="true" Hover="true" Striped="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>Link</MudTh>
+            <MudTh>Created At</MudTh>
+            <MudTh>Device IDs</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudLink Href="@($"/share/{context.SHash}")" Typo="Typo.body2">
+                    @($"{Nav.BaseUri}share/{context.SHash}")
+                </MudLink>
+            </MudTd>
+            <MudTd>@context.CreateTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</MudTd>
+            <MudTd>@context.Peers</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>No active share links.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public string? Hash { get; set; }
+
+    private UserProfile?              currentUser;
+    private List<RustDeskPeer>        myPeers       = [];
+    private IReadOnlyCollection<RustDeskPeer> selectedPeers = new List<RustDeskPeer>();
+    private List<ShareLink>           shareLinks    = [];
+    private string?                   generatedLink;
+    private string                    resultMessage = "";
+    private Severity                  resultSeverity = Severity.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState  = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUser    = await UserManager.GetUserAsync(authState.User);
+        if (currentUser is null) { Nav.NavigateTo("/login", forceLoad: true); return; }
+
+        if (Hash is not null)
+            await HandleShareLink();
+        else
+            await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        // Expire stale links
+        var stale = await db.ShareLinks
+            .Where(s => s.UserId == currentUser!.Id && !s.IsUsed && !s.IsExpired)
+            .ToListAsync();
+        foreach (var sl in stale.Where(sl => (DateTime.UtcNow - sl.CreateTime).TotalMinutes >= 15))
+            sl.IsExpired = true;
+        await db.SaveChangesAsync();
+
+        myPeers    = await db.Peers.Where(p => p.UserId == currentUser!.Id).ToListAsync();
+        shareLinks = await db.ShareLinks
+            .Where(s => s.UserId == currentUser!.Id && !s.IsUsed && !s.IsExpired)
+            .ToListAsync();
+    }
+
+    private async Task HandleShareLink()
+    {
+        await using var db   = await DbFactory.CreateDbContextAsync();
+        var shareLink        = await db.ShareLinks.FirstOrDefaultAsync(s => s.SHash == Hash);
+
+        if (shareLink is null)
+        {
+            resultSeverity = Severity.Error;
+            resultMessage  = "This share link does not exist or has already expired.";
+            return;
+        }
+        if (shareLink.UserId == currentUser!.Id)
+        {
+            resultSeverity = Severity.Warning;
+            resultMessage  = "You cannot use your own share link.";
+            return;
+        }
+
+        shareLink.IsUsed   = true;
+        var peerIds        = shareLink.Peers.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var selfRids       = await db.Peers.Where(p => p.UserId == currentUser.Id).Select(p => p.RustDeskId).ToListAsync();
+        var sharedPeers    = await db.Peers
+            .Where(p => peerIds.Contains(p.RustDeskId) && p.UserId == shareLink.UserId)
+            .ToListAsync();
+
+        var added = new List<string>();
+        foreach (var peer in sharedPeers.Where(p => !selfRids.Contains(p.RustDeskId)))
+        {
+            db.Peers.Add(new RustDeskPeer
+            {
+                UserId     = currentUser.Id,
+                RustDeskId = peer.RustDeskId,
+                Username   = peer.Username,
+                Hostname   = peer.Hostname,
+                Alias      = peer.Alias,
+                Platform   = peer.Platform,
+                Tags       = peer.Tags,
+                RHash      = peer.RHash
+            });
+            added.Add(peer.RustDeskId);
+        }
+        await db.SaveChangesAsync();
+
+        resultSeverity = Severity.Success;
+        resultMessage  = added.Count > 0
+            ? $"Successfully added: {string.Join(", ", added)}"
+            : "No new devices were added (they may already be in your address book).";
+    }
+
+    private async Task GenerateShareLink()
+    {
+        if (!selectedPeers.Any()) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        var link = new ShareLink
+        {
+            UserId      = currentUser!.Id,
+            SHash       = TokenService.GenerateToken(DateTime.UtcNow.Ticks.ToString()),
+            Peers       = string.Join(",", selectedPeers.Select(p => p.RustDeskId)),
+            CreateTime  = DateTime.UtcNow
+        };
+        db.ShareLinks.Add(link);
+        await db.SaveChangesAsync();
+
+        generatedLink = $"{Nav.BaseUri}share/{link.SHash}";
+        shareLinks.Add(link);
+        selectedPeers = new List<RustDeskPeer>();
+        Snackbar.Add("Share link generated!", Severity.Success);
+    }
+}

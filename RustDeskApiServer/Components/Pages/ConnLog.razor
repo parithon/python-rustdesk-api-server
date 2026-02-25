@@ -1,0 +1,114 @@
+@page "/conn-log"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<UserProfile> UserManager
+@inject NavigationManager Nav
+
+<PageTitle>Connection Log — RustDesk Web</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Connection Log</MudText>
+
+<MudTable Items="rows"
+          Dense="true"
+          Hover="true"
+          Striped="true"
+          Loading="isLoading"
+          LoadingProgressColor="Color.Primary"
+          RowsPerPage="20"
+          SortLabel="Sort By">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchString"
+                      Placeholder="Search"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Medium"
+                      Class="mt-0" />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<ConnLogRow, object>(r => r.FromIp)">User IP</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ConnLogRow, object>(r => r.FromId)">User ID</MudTableSortLabel></MudTh>
+        <MudTh>User Alias</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<ConnLogRow, object>(r => r.RustDeskId)">Remote ID</MudTableSortLabel></MudTh>
+        <MudTh>Remote Alias</MudTh>
+        <MudTh><MudTableSortLabel SortBy="@(new Func<ConnLogRow, object>(r => r.ConnStart ?? string.Empty))">Start</MudTableSortLabel></MudTh>
+        <MudTh>End</MudTh>
+        <MudTh>Duration</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="User IP">@context.FromIp</MudTd>
+        <MudTd DataLabel="User ID">@context.FromId</MudTd>
+        <MudTd DataLabel="User Alias">@context.FromAlias</MudTd>
+        <MudTd DataLabel="Remote ID">@context.RustDeskId</MudTd>
+        <MudTd DataLabel="Remote Alias">@context.Alias</MudTd>
+        <MudTd DataLabel="Start">@context.ConnStart</MudTd>
+        <MudTd DataLabel="End">@context.ConnEnd</MudTd>
+        <MudTd DataLabel="Duration">
+            <MudChip T="string" Size="Size.Small" Color="Color.Default">@context.Duration</MudChip>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 20, 50, 100 }" />
+    </PagerContent>
+    <NoRecordsContent>
+        <MudText>No connection logs found.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private bool            isLoading    = true;
+    private string?         searchString;
+    private List<ConnLogRow> rows        = [];
+
+    private sealed record ConnLogRow(
+        string  FromIp,
+        string  FromId,
+        string  FromAlias,
+        string  RustDeskId,
+        string  Alias,
+        string? ConnStart,
+        string? ConnEnd,
+        string  Duration);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState   = await AuthStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await UserManager.GetUserAsync(authState.User);
+        if (currentUser is null) { Nav.NavigateTo("/login", forceLoad: true); return; }
+
+        await using var db  = await DbFactory.CreateDbContextAsync();
+        var logs             = await db.ConnLogs.OrderByDescending(l => l.ConnStart).ToListAsync();
+        var peerAliasMap     = await db.Peers.ToDictionaryAsync(p => p.RustDeskId, p => p.Alias);
+
+        rows = logs.Select(log =>
+        {
+            peerAliasMap.TryGetValue(log.RustDeskId ?? "", out var alias);
+            peerAliasMap.TryGetValue(log.FromId ?? "", out var fromAlias);
+
+            string duration;
+            try
+            {
+                if (log.ConnEnd.HasValue && log.ConnStart.HasValue)
+                {
+                    var secs = (int)(log.ConnEnd.Value - log.ConnStart.Value).TotalSeconds;
+                    duration = $"{secs / 3600:D2}:{secs % 3600 / 60:D2}:{secs % 60:D2}";
+                }
+                else duration = "—";
+            }
+            catch { duration = "—"; }
+
+            return new ConnLogRow(
+                FromIp:    log.FromIp   ?? "",
+                FromId:    log.FromId   ?? "",
+                FromAlias: fromAlias    ?? "UNKNOWN",
+                RustDeskId: log.RustDeskId ?? "",
+                Alias:     alias        ?? "UNKNOWN",
+                ConnStart: log.ConnStart?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                ConnEnd:   log.ConnEnd?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                Duration:  duration);
+        }).ToList();
+
+        isLoading = false;
+    }
+}

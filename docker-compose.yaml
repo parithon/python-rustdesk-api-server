@@ -5,13 +5,20 @@ services:
     build:
       context: .
     environment:
-      - HOST=0.0.0.0
-      - TZ=Asia/Shanghai
-      - CSRF_TRUSTED_ORIGINS=http://yourdomain.com:21114
+      - ASPNETCORE_URLS=http://0.0.0.0:21114
+      - TZ=UTC
+      # Set to MYSQL to use MySQL instead of SQLite
+      - DatabaseType=SQLITE
+      # MySQL settings (only used when DatabaseType=MYSQL)
+      # - MySql__Host=127.0.0.1
+      # - MySql__Port=3306
+      # - MySql__Database=rustdesk
+      # - MySql__User=rustdesk
+      # - MySql__Password=yourpassword
+      # Allow new user registration (true/false)
+      - AllowRegistration=true
     volumes:
-      - /yourpath/db:/rustdesk-api-server/db
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+      - /yourpath/db:/app/db
     network_mode: bridge
     ports:
       - "21114:21114"
